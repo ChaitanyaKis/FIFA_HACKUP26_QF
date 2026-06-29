@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import type { Club } from '../data/types.ts';
 import { CrestBadge } from './CrestBadge.tsx';
 
-const COLORS = ['#f2c94c', '#2be8ff', '#eef2fb', '#27e0a0'];
+const COLORS = ['#e8c766', '#cbd5e1', '#f2f4f7', '#3fa86e'];
 
 export function ChampionsMoment({ club, onClose }: { club: Club | undefined; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

@@ -111,7 +111,7 @@ export function MomentumWave({ fixture }: { fixture: MatchResult }) {
           return (
             <g key={i}>
               <line x1={x} y1={CENTER} x2={x} y2={tipY} stroke={color} strokeWidth="2" strokeDasharray="2 2" />
-              <circle cx={x} cy={tipY} r="5" fill={color} stroke="#0a0e17" strokeWidth="1.5" />
+              <circle cx={x} cy={tipY} r="5" fill={color} stroke="#111316" strokeWidth="1.5" />
               <text
                 x={x}
                 y={homeGoal ? tipY - 8 : tipY + 16}

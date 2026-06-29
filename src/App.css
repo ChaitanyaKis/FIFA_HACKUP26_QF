@@ -4,22 +4,25 @@
      interactive affordance) · GOLD = leader/champion ONLY · WIN/LOSS for
      form/deltas/momentum · the rest is the neutral ink scale. Team kit
      colors live only in their own row/crest/momentum side, never in chrome. */
-  --bg: #0a0e17; /* INK (page) */
-  --bg-2: #0c111c; /* ink, slight elevation for gradients */
-  --panel: #131a28; /* SURFACE */
-  --panel-2: #1d2738; /* SURFACE (raised) */
-  --line: #283449; /* neutral border */
-  --text: #eef2fb; /* primary text */
-  --muted: #8c99b5; /* secondary text */
-  --faint: #54607d; /* tertiary text */
-  --accent: #2be8ff; /* BRAND ACCENT — electric cyan (only accent) */
-  --accent-soft: rgba(43, 232, 255, 0.14);
-  --gold: #f2c94c; /* CHAMPION GOLD — leader / champion ONLY */
-  --gold-soft: rgba(242, 201, 76, 0.14);
-  --live: #2be8ff; /* LIVE dot = cyan */
-  --win: #27e0a0;
-  --draw: #54607d;
-  --loss: #ff5470;
+  /* Palette v2 — desaturated broadcast: neutral graphite chrome + platinum
+     accent; saturated colour only with meaning (gold=champion, team colours=
+     identity, green/red=results). */
+  --bg: #111316; /* INK (page) */
+  --bg-2: #14171c; /* ink, slight elevation for gradients */
+  --panel: #181b20; /* SURFACE */
+  --panel-2: #21262d; /* SURFACE (raised) */
+  --line: #2a3038; /* neutral border / hairline */
+  --text: #f2f4f7; /* primary text */
+  --muted: #9aa4b0; /* secondary text */
+  --faint: #626b76; /* tertiary text */
+  --accent: #cbd5e1; /* BRAND ACCENT — platinum (only chrome accent) */
+  --accent-soft: rgba(203, 213, 225, 0.14);
+  --gold: #e8c766; /* CHAMPION GOLD — leader / champion ONLY */
+  --gold-soft: rgba(232, 199, 102, 0.14);
+  --live: #cbd5e1; /* LIVE dot = platinum (pulses toward white) */
+  --win: #3fa86e;
+  --draw: #8a929c;
+  --loss: #c5544b;
 }
 
 .app {
@@ -31,7 +34,7 @@
   background:
     radial-gradient(
       1100px 460px at 50% -14%,
-      rgba(43, 232, 255, 0.07) 0%,
+      rgba(203, 213, 225, 0.07) 0%,
       transparent 60%
     ),
     repeating-linear-gradient(
@@ -115,7 +118,7 @@
   padding: 0.35rem 0.7rem;
   background: var(--accent-soft);
   color: var(--accent);
-  border: 1px solid rgba(43, 232, 255, 0.5);
+  border: 1px solid rgba(203, 213, 225, 0.5);
   font-weight: 800;
   font-size: 0.82rem;
   letter-spacing: 2px;
@@ -208,7 +211,7 @@
   color: #061016;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  box-shadow: 0 4px 18px rgba(43, 232, 255, 0.28);
+  box-shadow: 0 4px 18px rgba(203, 213, 225, 0.28);
 }
 .btn-whistle:hover:not(:disabled) {
   filter: brightness(1.1);
@@ -362,16 +365,16 @@
   background: var(--gold-soft);
   border-left-color: var(--gold);
   box-shadow:
-    inset 0 0 0 1px rgba(242, 201, 76, 0.4),
-    0 0 22px rgba(242, 201, 76, 0.18);
+    inset 0 0 0 1px rgba(232, 199, 102, 0.4),
+    0 0 22px rgba(232, 199, 102, 0.18);
 }
 .leader-flash {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     90deg,
-    rgba(242, 201, 76, 0.85) 0%,
-    rgba(242, 201, 76, 0.25) 60%,
+    rgba(232, 199, 102, 0.85) 0%,
+    rgba(232, 199, 102, 0.25) 60%,
     transparent 100%
   );
   pointer-events: none;
@@ -1171,7 +1174,7 @@
 }
 .fixture--edited {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(43, 232, 255, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.4);
 }
 .fixture-edit-tag {
   position: absolute;
@@ -1374,13 +1377,13 @@
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--accent);
-  border: 1px solid rgba(43, 232, 255, 0.5);
+  border: 1px solid rgba(203, 213, 225, 0.5);
   border-radius: 999px;
   padding: 0.05rem 0.45rem;
 }
 .fixture--derby {
-  border-color: rgba(43, 232, 255, 0.5);
-  box-shadow: 0 0 18px rgba(43, 232, 255, 0.12);
+  border-color: rgba(203, 213, 225, 0.5);
+  box-shadow: 0 0 18px rgba(203, 213, 225, 0.12);
   padding-top: 1.4rem;
 }
 
@@ -1720,7 +1723,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.6rem;
-  background: linear-gradient(90deg, rgba(242, 201, 76, 0.16), rgba(242, 201, 76, 0.04));
+  background: linear-gradient(90deg, rgba(232, 199, 102, 0.16), rgba(232, 199, 102, 0.04));
   border: 1px solid var(--gold);
   border-left: 6px solid var(--gold);
   border-radius: 10px;
@@ -1758,13 +1761,13 @@
   0%,
   100% {
     box-shadow:
-      inset 0 0 0 1px rgba(242, 201, 76, 0.5),
-      0 0 22px rgba(242, 201, 76, 0.25);
+      inset 0 0 0 1px rgba(232, 199, 102, 0.5),
+      0 0 22px rgba(232, 199, 102, 0.25);
   }
   50% {
     box-shadow:
-      inset 0 0 0 1px rgba(242, 201, 76, 0.9),
-      0 0 34px rgba(242, 201, 76, 0.55);
+      inset 0 0 0 1px rgba(232, 199, 102, 0.9),
+      0 0 34px rgba(232, 199, 102, 0.55);
   }
 }
 .celebrate .standings-row.is-leader {

@@ -50,7 +50,7 @@ export function PositionWormChart({ worm }: { worm: WormRow[] }) {
           <g key={w.clubId}>
             <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
             {w.positions.map((p, i) => (
-              <circle key={i} cx={xFor(i)} cy={yFor(p)} r="3.5" fill={color} stroke="#0a0e17" strokeWidth="1.5" />
+              <circle key={i} cx={xFor(i)} cy={yFor(p)} r="3.5" fill={color} stroke="#111316" strokeWidth="1.5" />
             ))}
             <text
               x={xFor(last) + 8}
