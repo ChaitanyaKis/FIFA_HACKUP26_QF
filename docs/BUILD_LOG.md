@@ -485,3 +485,5 @@ overflow on mobile** + wave renders in-tab; 0 console errors.
 
 **Status:** all phases complete — broadcast-grade, palette-disciplined, fully
 responsive, deploy-ready.
+
+**Palette v2 (2026-06-29):** swapped only the theme token values — desaturated broadcast palette (graphite ink/surfaces, platinum `#CBD5E1` as the sole chrome accent, gold `#E8C766` still reserved for leader/champion, win `#3FA86E` / loss `#C5544B`); no layout/structure/component/animation/SFX/logic changes. Drop-in: cyan/neon removed from chrome (verified 0 hits), gold-on-champion + team-colour momentum wave intact; build clean.
