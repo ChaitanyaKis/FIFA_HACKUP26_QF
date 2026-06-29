@@ -1,32 +1,72 @@
 # League Standings Leaderboard & Live Performance Analytics Portal
 
-A broadcast-style portal that tracks a 4-team league season and turns it into
-**live performance analytics**. Hit **Simulate Final Whistle** to play the next
-matchday: the table physically re-orders, the stat bars and momentum meters
-animate, a Man-of-the-Match lower-third slides in, and an **AI Performance
-Analyst** writes a short, data-driven read of what just happened.
+A broadcast-style portal that runs a **simulated** mini-league between four **real
+clubs** and turns it into live performance analytics. Press **Simulate Final
+Whistle** and the table physically re-orders, broadcast moments fire, and a
+two-way **AI Performance Analyst** reads the match — with a season-long track
+record. Rewrite any scoreline with **What-If** and watch the whole cascade
+recompute.
 
-> All teams, players and results are **fictional** — no real clubs, people or
-> leagues are referenced anywhere.
+> **Real clubs, real current squads — but every MATCH is simulated.** A seeded
+> engine generates all results; the analyst always treats the data as simulated
+> and never states it as real-world fact about the real players.
 
-**Live demo:** `https://chaitanyakis.github.io/FIFA_HACKUP26_QF/`
-*(GitHub Pages serves the username lowercased; the repo path keeps its case.)*
+**Live demo:** `https://ieeecssociety803.github.io/FIFA-HACKUP-Morocco/`
+*(GitHub Pages lowercases the username; the repo path keeps its case.)*
 
 ---
 
-## What it does
+## Features
 
-- **League table** — 4 teams, sorted points → goal difference → goals for, with
-  a gold-highlighted leader, W/D/L form pips, and FLIP slide animations on every
-  re-order.
-- **Final Whistle** — advances one matchday at a time; **Reset** restarts the
-  season. The whole season is scripted so the underdog **Kestrel City** climbs
-  from 4th to 1st, sealing the title on the final day.
-- **Scoreboard** — the matchday's fixtures with animated scores + MOTM.
-- **Match Analytics** — possession / shots / xG comparison bars, plus a
-  per-fixture **momentum** meter derived from the xG swing.
-- **MOTM lower-third** — a TV-style graphic spotlighting the matchday's standout.
-- **AI Performance Analyst** — the creative feature (see below).
+**Hero (always visible)**
+- **League table** — 4 clubs, points → GD → GF, gold-highlighted leader, W/D/L
+  form pips, FLIP slide animation + leader-change flash on every re-order.
+- **Scoreboard** — the matchday's fixtures with count-up scores, MOTM, and an
+  **El Clásico** badge + heightened framing on rivalry fixtures.
+- **Match Analytics** — possession / shots / xG comparison bars + an xG-swing
+  momentum meter per fixture.
+- **MOTM lower-third** — a TV-style spotlight on the matchday's top-rated player.
+- **Title Race** — live Monte-Carlo win probability per club + clinch / magic-number.
+- **AI Performance Analyst** — the creative feature (below).
+
+**Interactive**
+- **Mutable seed** — the whole season derives from `CURRENT_SEED` (shown as
+  "Season #737"). **Reset Season** cycles ~12 curated dramatic seasons (different
+  champion each click); **Surprise me** picks a fully random one.
+- **Scrubber + Simulate-to-end** — drag through matchdays; the table FLIPs both ways.
+- **What-If** — click a fixture, rewrite the scoreline (and scorers); standings,
+  GD, position, form, win-probability and clinch all recompute and the table
+  re-orders. "Revert" restores the simulation.
+
+**Secondary (tabs)**
+- **Stats** — Golden Boot · Assists · Golden Glove.
+- **Tables** — Home / Away / Form / xG (toggle), full P/W/D/L/GD/Pts.
+- **Match** — a **FIFA-style momentum wave** (home color above the centreline,
+  away below, goal markers on their minute) + a 0-90' timeline + player ratings.
+- **Season** — a position-worm line chart (1 at the top, one line per club).
+
+**Broadcast moments** — a referee-whistle SFX on Final Whistle, a crowd roar on
+a lead change, and on title clinch a gold **CHAMPIONS** lower-third + pulsing
+winning row + confetti (all respecting a mute toggle; sound is synthesized via
+Web Audio — no assets).
+
+---
+
+## The iconic palette (and its rules)
+
+| Token | Hex | Use |
+|---|---|---|
+| Ink | `#0A0E17` | page |
+| Surface | `#131A28` / `#1D2738` | elevation |
+| **Brand accent** | `#2BE8FF` cyan | the **only** accent — LIVE dot, active tab, every interactive affordance |
+| **Champion gold** | `#F2C94C` | **reserved** for the #1 row + the champion moment only |
+| Win / Loss | `#27E0A0` / `#FF5470` | form pips, deltas, momentum swing |
+| Text | `#EEF2FB` / `#8C99B5` / `#54607D` | text scale |
+
+**Discipline:** gold only ever means leader/champion; cyan is the only brand
+accent and is used identically everywhere; **real team kit colours live only
+inside their own row / crest / their side of the momentum wave — never in the
+chrome**; everything else is the neutral ink scale.
 
 ---
 
@@ -34,137 +74,108 @@ Analyst** writes a short, data-driven read of what just happened.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173/FIFA_HACKUP26_QF/
+npm run dev      # http://localhost:5173/FIFA-HACKUP-Morocco/
+npm run build    # type-check + production build to dist/
+npm run preview  # serve the production build under the Pages base
+npm run verify   # re-simulate + assert every invariant (engine + analytics)
 ```
 
-Other scripts:
-
-```bash
-npm run build      # type-check (tsc) + production build to dist/
-npm run preview    # serve the production build locally (under the Pages base)
-npm run verify     # prove the scripted season: prints the table after each
-                   # matchday and asserts the underdog climbs 4th → 1st
-```
-
-**Optional — enable the live AI analyst:** get a **new** key from
-[Google AI Studio](https://aistudio.google.com/app/apikey) and either paste it
-into the in-app "AI Performance Analyst" field, or copy `.env.example` to `.env`
-and set `VITE_GEMINI_API_KEY`. Without a key the analyst still works via its
-deterministic fallback. `.env` is gitignored and the key is never persisted.
+**Optional — live AI analyst:** get a **new** key from
+[Google AI Studio](https://aistudio.google.com/app/apikey) and paste it into the
+analyst's key field (in memory only, never saved), or for local dev copy
+`.env.example` → `.env` and set `VITE_GEMINI_API_KEY`. The `.env` key is read in
+**dev only** — it is never bundled into a production build. Without any key the
+analyst still works via its grounded deterministic fallback.
 
 ---
 
 ## Architecture — one match-log, everything derived
 
-The core rule (see [`CLAUDE.md`](./CLAUDE.md)): a **single match-log is the only
-source of truth.** The only mutable state in the app is one integer —
-`playedMatchdays` — held in a `useReducer`. Everything the UI shows is **derived
-on every render** by pure functions from the played slice of the log:
+The only mutable state is the **seed** + how far the season is revealed + any
+What-If edits. The entire season is **generated by a seeded simulation**, and
+every view (table, stats, MOTM, form, win-probability, clinch, leaderboards,
+momentum, worm, predictions) is a **pure function of the resulting match-log** —
+which is exactly what lets What-If recompute everything on edited results.
 
 ```
-match-log (src/data/season.ts)
-        │  season.filter(m => m.matchday <= playedMatchdays)
-        ▼
-pure engine (src/engine/engine.ts)
-  computeStandings · computeMatchStats · pickMOTM · computeMomentum ·
-  pickMatchdayMOTM · titleRaceState
-        ▼
-components render derived views (never store them)
+SEED ─► sim/engine (mulberry32 + Poisson, 3 RNG streams) ─► match-log
+            │  What-If edits re-enrich individual fixtures
+            ▼
+engine/engine.ts (computeStandings…) + engine/derive.ts (leaderboards, tables,
+worm, clinch, Monte-Carlo win-prob, predictions/accuracy) — all PURE over results
+            ▼
+React components render derived views (never store them) · FLIP on every change
 ```
 
-Because standings, stats, MOTM, form and the title race are **recomputed, never
-stored**, the table and the numbers can never desync. The engine is pure (no I/O,
-no clock, no randomness), which is what makes `npm run verify` a deterministic
-proof of the whole season.
+`npm run verify` is a deterministic proof: it re-runs 737, asserts goal totals +
+standings are byte-identical to the pre-enrichment result, checks all per-fixture
+invariants (goals ≤ sot ≤ shots, Σ goal-events == goals, valid scorers/MOTM,
+momentum tracks xG), confirms invariants hold for **20 random seeds** and any
+What-If edit, and proves the worm == the real table at every matchday.
 
-```
-src/
-  data/      types.ts · season.ts (the match-log) · lookups.ts
-  engine/    engine.ts (all pure derivations)
-  state/     matchLogReducer.ts (playedMatchdays + SIMULATE_FINAL_WHISTLE / RESET)
-  ai/        analyst.ts (prompt + deterministic fallback) · gemini.ts (the fetch)
-  components/ StandingsTable · Scoreboard · StatBars · Momentum · MOTMCard ·
-              ControlBar · AnalystDesk · FormPips
-  verify/    verifySeason.ts (runnable season proof)
-```
+### Data provenance
+- **Crests:** `github.com/luukhopman/football-logos` → `public/crests/<code>.png`
+  (relative paths under the Vite base; monogram fallback if any are missing).
+- **Kit colours:** official documented hex (teamcolorcodes.com was unreachable,
+  so sourced from Wikipedia/Wikimedia — not invented).
+- **Squads:** each club's Wikipedia **"2026–27 … season"** page (Manchester
+  United fell back to its **2025–26** page). **Squad snapshot: 2026-06-29**,
+  surfaced in the footer; uncertain players were dropped, not invented.
 
 ---
 
-## Creative Feature — the AI Performance Analyst
+## Creative Feature — the two-way AI Performance Analyst
 
-A live **analyst desk** that reads each matchday's data and writes a short,
-**data-driven** tactical/statistical analysis — framed as an analyst (xG,
-possession, shots, over/under-performance, title-race math), not a hype pundit.
-This leans directly into the "Live Performance Analytics" brief.
+A data-driven analyst (not a hype pundit) with three layers:
 
-### What it produces
-After each whistle it files: (a) a 3–4 sentence read of the matchday — who the
-xG/possession/shots favoured, any goals-vs-xG over/under-performance, and a
-stats-justified Man of the Match — and (b) a one-line **Title race:** verdict
-from the points/gap math. The text **types out** progressively into the panel.
+1. **Deep tactical read** after each whistle — fed the Golden Boot leader, per-club
+   win probability, the magic number, a momentum summary, SOT/shots/xG quality and
+   any derby flag; it returns who deserved it on xG/momentum, over/under-performance,
+   a game-state read, and a title verdict **citing the win-prob %**.
+2. **Ask-the-analyst** — a free-form box; answers are grounded **only** in the live
+   match-log (win %, points, goals, xG), with a deterministic grounded fallback.
+3. **Prediction + accuracy tracker** — it calls each matchday's scorelines, then
+   grades them into a season record ("Analyst: 5/12 correct").
 
-### How the client-side LLM call works (verified, no SDK)
-- **Provider/model:** Google Gemini, **`gemini-3.5-flash`** — verified GA/stable
-  *and* free on the live [models](https://ai.google.dev/gemini-api/docs/models)
-  and [pricing](https://ai.google.dev/gemini-api/docs/pricing) pages
-  (free tier ≈ 15 req/min, 1500/day). The model is a single constant in
-  `src/ai/gemini.ts`.
-- **Request:** one raw `fetch` (no SDK, no streaming) —
-  `POST …/v1beta/models/gemini-3.5-flash:generateContent`, headers
-  `x-goog-api-key` + `Content-Type: application/json`. **CORS was verified for
-  real** against the endpoint (OPTIONS preflight returns 200 allowing `POST` +
-  `x-goog-api-key,content-type`; the POST reflects the page `Origin`), so the
-  browser call works directly from GitHub Pages.
-- **Body:** `system_instruction` (frames the analyst) + `contents` (the matchday
-  data block) + `generationConfig` with `maxOutputTokens: 600`,
-  `temperature: 0.7`, and `thinkingConfig.thinkingBudget: 0`. The last one
-  matters: 2.5/3.x Flash "think" by default and thinking tokens are charged
-  against the output budget, which can return empty text — disabling it sends the
-  full budget to the answer.
-- **Parsing:** Gemini's shape — `data.candidates[0].content.parts[].text`
-  (joined), **not** Anthropic's `content[].text`.
-- **Key handling:** entered at runtime and kept in React state **only** — never
-  written to `localStorage`/`sessionStorage`/cookies, never logged, never put in
-  a URL or an error message, and never committed (`.env` is gitignored).
-
-### The deterministic fallback (why it never dies on stage)
-If there is **no key**, or the call **fails / 429 rate-limits / returns empty**,
-the panel seamlessly shows a deterministic analysis generated from the match-log
-by `fallbackAnalysis()` — templated but grounded in **real deltas** (e.g.
-"clinical, turning 1.1 xG into 2 goals (overperformed by 0.9)", "leads by 2
-points with 2 matchdays to play"). It reads like analysis, never a raw error, and
-a small tag (e.g. *"Rate limit (429) — deterministic analysis"*) shows why it's
-offline. The killer feature works with or without the network.
+**How the client-side LLM call works:** one raw `fetch` (no SDK, no streaming) to
+`…/v1beta/models/gemini-2.5-flash:generateContent` with `x-goog-api-key` —
+CORS verified directly against the endpoint. The body sets
+`thinkingConfig.thinkingBudget: 0` so the token budget yields the answer; parsing
+reads `candidates[0].content.parts[].text`. Every prompt states the season is
+**SIMULATED** and forbids real-world claims. The key lives in React state only
+(never persisted/logged), and is dead-code-eliminated from production builds.
+`gemini-2.5-flash` is pinned (verified GA + free; the newer `gemini-3.5-flash` was
+returning 503) — a single constant in `src/ai/gemini.ts`.
 
 ---
 
 ## Deploy to GitHub Pages
 
-`vite.config.ts` already sets `base: '/FIFA_HACKUP26_QF/'` (must match the repo
-name). Two supported paths:
-
-**A) One-command manual deploy** (publishes `dist/` to a `gh-pages` branch):
+`vite.config.ts` sets `base: '/FIFA-HACKUP-Morocco/'` (matches the repo); crest paths
+are relative, so assets load under the base on Pages.
 
 ```bash
-git init && git add -A && git commit -m "League analytics portal"
-git branch -M main
-git remote add origin https://github.com/ChaitanyaKis/FIFA_HACKUP26_QF.git
-git push -u origin main
+# from the project root, with the GitHub remote already set
 npm run deploy
 ```
+This builds and publishes `dist/` to a `gh-pages` branch. Then on GitHub:
+**Settings → Pages → Source: Deploy from a branch → `gh-pages` / `root`.**
 
-Then: **Settings → Pages → Source: Deploy from a branch → `gh-pages` / `root`.**
+Or push to `main` and let the included workflow
+[`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) build + deploy
+(set **Settings → Pages → Source: GitHub Actions** once).
 
-**B) Automatic CI deploy** — push to `main` and the included workflow
-[`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) builds and
-publishes. Set **Settings → Pages → Source: GitHub Actions** once.
+**Live URL:** `https://ieeecssociety803.github.io/FIFA-HACKUP-Morocco/`
 
-**Live URL:** `https://chaitanyakis.github.io/FIFA_HACKUP26_QF/`
+> Build the public bundle with `.env` empty/absent so no key is shipped — the
+> dev-only guard already strips it, and visitors paste their own key at runtime.
 
 ---
 
 ## Tech
 
-React + TypeScript + Vite · framer-motion (FLIP / animations) · raw `fetch` to
-Gemini (no SDK) · in-memory state only (no persistence). Build journal in
-[`docs/BUILD_LOG.md`](./docs/BUILD_LOG.md).
+React + TypeScript + Vite · framer-motion (FLIP / animations) · in-house seeded
+sim (mulberry32 + Poisson, no deps) · pure SVG charts · Web Audio SFX · raw
+`fetch` to Gemini (no SDK) · in-memory state only. Build journal in
+[`docs/BUILD_LOG.md`](./docs/BUILD_LOG.md); one-paragraph overview in
+[`docs/OVERVIEW.md`](./docs/OVERVIEW.md).

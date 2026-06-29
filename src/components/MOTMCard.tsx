@@ -6,7 +6,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
 import type { MotmSpotlight } from '../data/types.ts';
-import { teamById } from '../data/lookups.ts';
+import { clubById } from '../data/lookups.ts';
+import { CrestBadge } from './CrestBadge.tsx';
 
 interface Props {
   spotlight: MotmSpotlight | null;
@@ -39,9 +40,9 @@ export function MOTMCard({ spotlight }: Props) {
 }
 
 function LowerThird({ spotlight }: { spotlight: MotmSpotlight }) {
-  const team = teamById.get(spotlight.teamId);
-  const opp = teamById.get(spotlight.opponentId);
-  const style = { '--team-color': team?.color ?? '#8892a6' } as CSSProperties;
+  const club = clubById.get(spotlight.teamId);
+  const opp = clubById.get(spotlight.opponentId);
+  const style = { '--team-color': club?.primaryColor ?? '#8892a6' } as CSSProperties;
   const resultWord = spotlight.won
     ? 'in the win'
     : spotlight.scoreline.split('-')[0] === spotlight.scoreline.split('-')[1]
@@ -58,13 +59,14 @@ function LowerThird({ spotlight }: { spotlight: MotmSpotlight }) {
       transition={{ type: 'spring', stiffness: 340, damping: 30 }}
     >
       <span className="lt-accent" />
+      <CrestBadge club={club} size={40} />
       <div className="lt-body">
         <span className="lt-kicker">
           ★ Man of the Match · Matchday {spotlight.matchday}
         </span>
         <span className="lt-name">{spotlight.player.name}</span>
         <span className="lt-team">
-          {team?.name}
+          {club?.name}
           <span className="lt-sep">·</span>
           {spotlight.scoreline} vs {opp?.shortCode} {resultWord}
         </span>

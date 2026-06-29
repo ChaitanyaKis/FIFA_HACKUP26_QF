@@ -229,3 +229,259 @@ push to `github.com/ChaitanyaKis/FIFA_HACKUP26_QF` → `npm run deploy` (or push
 animations, responsive), Core Features (table/stats/scoreboard/MOTM), Interactive
 Logic (Final Whistle + FLIP + derive-everything engine), Creative Feature (AI
 Performance Analyst with stage-safe fallback).
+
+---
+
+## Phase 6 — Real clubs + simulation engine (2026-06-29)
+
+**SEED = 737 · SQUAD_SNAPSHOT_DATE = 2026-06-29**
+
+**Goal:** Replace the scripted season with a real seeded match-simulation, and
+the fictional clubs/players with 4 real clubs + real current squads. Keep all
+engine derivations, FLIP reorder, MOTM, analytics and the AI analyst intact.
+
+**A — Simulation engine (`sim/`):**
+- `ratings.ts` — close `{attack, defense}` per club + `HOME_ADVANTAGE` (kept
+  competitive so the title race is emergent).
+- `engine.ts` — inline `mulberry32` PRNG (no deps); per fixture
+  `lambda = f(attack, oppDefense, homeAdv)`, **goals = Knuth Poisson draw** on
+  that lambda (xG = lambda → over/under-performance is real & emergent);
+  possession/shots derived from attack share + bounded noise; scorers weighted
+  by position (FW>MF>DF>GK); MOTM = best performer (goals + xG). Full season
+  pre-simulated from `SEED` at init. **Two independent RNG streams** so match
+  outcomes (and standings) depend only on the seed, never on which squads load.
+- Authored results **deleted**; `season.ts` now = `simulateSeason(SEED, …)`.
+- Invariants hold: ΣGF=ΣGA, one game/club/matchday, scorers/MOTM in-fixture,
+  reproducible from SEED. `computeStandings` unchanged (points→GD→GF).
+- **Seed-selected** SEED 737 (not scripted) for the best emergent race: leaders
+  MUN→RMA→MUN→RMA→BAY→RMA (5 changes); **Real Madrid champion on goal
+  difference** over Man United (10–10), Bayern 9, Barça 5 — decided on the final
+  day.
+
+**B — Real clubs + current squads (fetched at build time):**
+- 4 clubs: Real Madrid, FC Barcelona, Manchester United, Bayern Munich
+  (`clubs.ts`, swappable). Real kit colours (Wikipedia/Wikimedia official hex —
+  teamcolorcodes.com was 404, so not invented). MUN & BAY share `#DA291C` red →
+  distinguished by **real crests + distinct secondary** (MUN navy, BAY white).
+- Crests pulled from `luukhopman/football-logos` into `/public/crests/<code>.png`
+  (paths validated via the GitHub tree API); **monogram fallback** if missing.
+- Squads from each club's Wikipedia **2026–27 season** page (RMA/FCB/BAY); **MUN
+  fell back to its 2025–26 page** (2026–27 squad not yet populated) — logged, not
+  fabricated. ~11 players each `{id,name,clubId,position}`; one unverifiable name
+  dropped rather than invented. `SQUAD_SNAPSHOT_DATE` surfaced in UI + README.
+
+**Framing / honesty:** analyst system + prompt now state the season is SIMULATED
+and must not present sim stats as real-world facts; footer reads "Real clubs —
+all matches are simulated (squad snapshot 2026-06-29)…"; a gold **SIMULATED** tag
+sits in the chrome. Security: the `.env` key is read **dev-only** (guarded by
+`import.meta.env.DEV`), so it is dead-code-eliminated from production bundles —
+verified the key is absent from `dist/`.
+
+**Verified:** `npm run verify` ✅ (table per matchday, all invariants green,
+reproducible, champion RMA). `npm run build` clean. Production build (Playwright +
+Edge, 12/12): real crests load as images, SIMULATED tag + dated footer present,
+final order `RMA > MUN > BAY > FCB` matches the seed, table reorders, MOTM
+lower-third shows real players, analyst renders, 0 errors, no mobile overflow.
+
+---
+
+## Phase 7 — Enriched match events (G1) (2026-06-29)
+
+**SEED = 737 · SQUAD_SNAPSHOT_DATE = 2026-06-29**
+
+**STEP 0 (sim, not script):** re-simulated seeds 738/739/740 — distinct champions
+& scores (738→FCB 11, 739→MUN 9, 740→MUN 11; different MD1 scorelines). The engine
+is genuinely seed-driven → proceeded. SEED restored to 737.
+
+**Additive enrichment (no goal total changed):** added a **third labelled RNG
+stream** `eventRng` (seed ^ 0x85ebca6b) for event detail, alongside the existing
+outcome (`rng`) and credit (`scorerRng`) streams. Goal totals/possession/shots
+draw ONLY from stream 1, so SEED-737 totals + standings are **byte-identical**
+(asserted per fixture + final table). Attached to each fixture:
+- **Goal events** — per goal `{minute(1-90/+stoppage), scorerId, assistId|null}`;
+  scorer by weight FW>MF>DF (GK never); assist ~65%, a different same-club
+  non-GK player; Σ events/club == that club's goal count.
+- **Shots on target** — `goals ≤ sot ≤ totalShots`, scaled off xG.
+- **Cards** — yellows (common) / reds (rare) `{playerId, minute, type}`.
+- **Suspensions** — matchdays simulated IN ORDER carrying accumulated cards:
+  red → miss next; 2 accumulated yellows → miss next + reset. Suspended players
+  are excluded from scorer/assist/card pools and exposed per fixture
+  (`suspended[]`). (e.g. Rüdiger 2×yellow MD1 → out MD2; Kim Min-jae red MD1 →
+  out MD2; Mbappé+Mendy out MD6 — totals unchanged.)
+- **Player ratings** — every featured player 4.0–10.0 (base 6.5 ± goals/assists,
+  clean-sheet/conceded for GK·DF, cards, bounded noise). **MOTM reconciled to the
+  top-rated player** of each fixture.
+- **Momentum series** — per-5-min signed wave (xG share + noise + Gaussian surge
+  at each goal minute, smoothed); a scaled offset guarantees the **higher-xG side
+  has the larger positive integral** every fixture (area edge ∝ xG edge).
+
+**Invariants (all asserted in `npm run verify`):** goals≤sot≤totalShots;
+Σgoal-events==goals; assists≤goals, assist≠scorer & same club; ΣGF==ΣGA/matchday;
+one game/club/matchday; **goal totals + final standings byte-identical** to
+pre-enrichment 737 (RMA>MUN>BAY>FCB, RMA & MUN level on 10); every credited player
+is in-fixture and not suspended; ratings∈[4,10]; MOTM==top-rated; momentum integral
+sign==xG edge; whole season reproducible from SEED.
+
+**Verified:** `npm run verify` ✅ (prints STEP-0, per-matchday goal
+minutes/scorers/assists, momentum summary md1-MUN-BAY home-area 38.3 vs away-area
+42.4 agreeing with xG 1.7-1.8, all invariants green). `npm run build` clean.
+Runtime smoke (Playwright + Edge, 4/4): app renders, champion RMA, order
+unchanged, MOTM lower-third renders, 0 errors. UI untouched (data-only phase).
+
+---
+
+## Phase 8 — Analytics layer (G2): engine/derive.ts (2026-06-29)
+
+**All pure functions of a results array** (so What-If in G3 recomputes everything
+on edited results). No new event generation; the only randomness is the Monte
+Carlo. Additive — core unchanged.
+
+- **computeStandings parameterized** (additive `StandingsOptions`:
+  `filter`/`side`/`scoreOf`/`round`) — default 2-arg call is byte-identical, and
+  the alternate tables REUSE it (no duplicated accumulation).
+- **Leaderboards** — Golden Boot (goals; tiebreak fewer matches → assists; apps
+  counted from per-fixture ratings), Assist race, Golden Glove (clean sheets per
+  club, attributed to its first-choice GK).
+- **Alternate tables** — Home (`side:'home'`), Away (`side:'away'`), Form (last N
+  matchdays via `filter`, default 5), xG (`scoreOf` = xG, `round:1`; GD =
+  cumulative xGF−xGA) — each a full P/W/D/L/GD/Pts view.
+- **Position worm** — each club's 1-4 position after every matchday via
+  computeStandings on the played slice (verified == the real table at each point).
+- **Title clinch / magic number** — points-based clinch (leader.points > every
+  chaser's points + 3×games-left) with magic number; season-complete (0 games
+  left) declares the full-tiebreak leader champion. Handles SEED 737 correctly:
+  not clinched MD1-5 (magic 16/10/10/6/4, all unreachable), **clinches only on
+  the final day** (GD-decided) → champion Real Madrid.
+- **Win-probability (Monte Carlo)** — pure over (current standings, remaining
+  fixtures, ratings); simulates the rest of the season 2000+ times with the same
+  ratings/Poisson model and fresh draws (seeded `mcSeed`, NOT the season SEED),
+  whole-% per club, recomputed each matchday; converges to 100/0 at the end.
+
+**Verified (`npm run verify`):** Golden Boot top 3 (Šeško 5 / Rodrygo 4 / Zirkzee
+3+3a), Away table (BAY 6·FCB 4·RMA 4·MUN 3), every club's worm row, title clinches
+**MD6 → Real Madrid**, win-prob `RMA 41/MUN 31/FCB 14/BAY 13` (MD1) → `RMA 100`
+(final). Asserts: **worm == computeStandings at every matchday**, clinch only on
+the final day, champion RMA, MC converges to 100/0, MD1 odds sum ≈100. All green;
+`npm run build` clean. (derive.ts not yet wired to UI — data layer for G3.)
+
+---
+
+## Phase 9 — Interactive layer (G3): mutable seed + What-If (2026-06-29)
+
+The highest-weighted bucket. The season SEED is now mutable state; the whole
+season + all G2 derivations recompute from it (and from What-If edits). Mandatory
+core (table, analytics, MOTM, Final Whistle) stays primary + always visible.
+
+**Engine (additive, reuses simulateSeason):**
+- Extracted `enrichFixture` (shared by simulateSeason + edits) and added
+  `reEnrichFixture(base, hG, aG, players, {scorers})` — re-derives one fixture's
+  consistent detail for a What-If edit (sot/cards/ratings/MOTM/momentum), seeded
+  deterministically from (fixture id + scoreline) so edits are stable. xG &
+  possession unchanged (only finishing changed).
+- **Engine fix (not a seed filter):** `shots = max(drawn, goals)` so `goals ≤
+  shots` for ANY seed — keeps `goals ≤ sot ≤ shots` valid. Deterministic
+  transform, same rng draw count → SEED 737 totals still byte-identical.
+
+**State / UI:**
+- `appReducer`: `{ seed, curatedIndex, playedMatchdays, edits }`. Actions:
+  SET_PLAYED (scrubber/whistle), NEXT_CURATED, RANDOM_SEED, APPLY_EDIT,
+  REVERT_ONE/REVERT_EDITS. Landing seed = **737**.
+- `CURATED_SEEDS` (12): scanned **2500** seeds, kept only dramatic races (title
+  decided on the final day → gap 0 on GD, ≥3 lead changes, 1st-4th spread ≤5,
+  last place ≥5 pts), ordered so consecutive Resets cycle champions
+  **RMA→BAY→FCB→MUN→…** (737, 396, 947, 646, 1597, 741, 2302, 763, 279, 210, 226,
+  1202).
+- Components: **WhatIfEditor** (click a fixture → edit scoreline + per-goal
+  scorer), **TitleRacePanel** (live Monte-Carlo win% bars + clinch/magic),
+  rewritten **ControlBar** (Season #seed readout, scrubber, Final Whistle,
+  Simulate-to-end auto-play, Reset Season, Surprise me, Revert What-If), clickable
+  Scoreboard fixtures. App re-derives standings/GD/position/form + win-prob +
+  clinch from seed+edits; FLIP runs on every change.
+
+**Acceptance — verified.** `npm run verify`: landing 737; curated resets 1-3 →
+RMA/BAY/FCB (distinct); **20 random (uncurated) seeds × 12 fixtures = 240, all
+invariants hold** (engine robust, no seed filtering); What-If md6-BAY-RMA→BAY 2-0
+RMA **flips champion RMA→BAY** with the edited fixture passing all invariants.
+Browser (Playwright + Edge, 16/16): active seed shown; scrubber drives FLIP both
+ways; **editing a result live cascades** standings+GD+position+form+win-prob+
+clinch and FLIPs (champion RMA→BAY, BAY win-prob→100%); WHAT-IF indicator + Revert
+restore the sim; **3 Resets → 3 different champions** (BAY/FCB/MUN); Surprise me →
+random season; 0 console errors. `npm run build` clean.
+
+---
+
+## Phase 10 — Two-way AI analyst + track record (2026-06-29)
+
+Elevated the analyst from "narrates" to a two-way tactical analyst WITH a track
+record. Gemini `gemini-2.5-flash` (runtime key, in-memory) + the deterministic
+grounded fallback. Every prompt states the season is SIMULATED and forbids
+real-world claims about the real players.
+
+- **Deep tactical read** — the post-matchday prompt now also carries Golden Boot
+  leader, per-club win probability, the magic number, a momentum summary
+  (control + against-the-run-of-play), SOT/shots/xG quality, and a derby flag
+  (El Clásico). Asks for who deserved it on xG/momentum, over/under-performance,
+  game-state reading, and a one-line title verdict that **cites the win-prob %**.
+- **Ask-the-analyst (two-way)** — `buildQAPrompt` + a free-form box (with quick
+  chips). Answers grounded ONLY in the live data block; deterministic
+  `fallbackAnswer` handles no-key/error/429 with keyword + club detection (title
+  chances, top scorer, why-won/lost via xG, form) citing real numbers.
+- **Prediction + accuracy tracker** — `predictMatchday` (the analyst's model call
+  from xG, pre-reveal) + `deriveAnalystRecord` (graded vs actual outcome, pure
+  over results). Shows the upcoming-matchday call and a season record "X/12
+  correct" with ✓/✗ ticks; reproducible, works with no key, recomputes on edits.
+- New RNG: none (analyst is derivation + I/O only). All new derivations pure.
+
+**Verified.** `npm run verify`: record 5/12, MD1 call printed, sim framing present
+in both system prompts + tactical + QA prompts, fallback read cites win-prob, and
+grounded fallback answers ("Barça… 10% chance, 4th on 4 pts… magic number 6";
+"Bellingham leads the Golden Boot with 3"). Browser (Playwright + Edge, 12/12):
+offline read cites win-prob; record tallies (2/6 → 5/12); upcoming MD call shown;
+offline Q&A grounded + tagged; **live read + Q&A render from Gemini (mocked)** and
+the **QA prompt carries SIMULATED framing + win% + Golden Boot grounding**; 0
+errors. `npm run build` clean.
+
+---
+
+## Phase 11 — Final skin + broadcast moments (G5) (2026-06-29)
+
+The visual finish. Restraint over decoration; the mandatory core stays the
+visually primary hero, with secondary features in tabs.
+
+- **Iconic palette, applied with discipline.** Ink page/surfaces; **cyan `#2BE8FF`
+  is the only brand accent** (LIVE dot, active tab, buttons, scrubber, focus,
+  What-If, derby badge, analyst accents); **gold `#F2C94C` reserved for the #1 row
+  + champion moment only** (audited out of the whistle button, FT badge, MOTM,
+  points column, sim/season tags, etc.); win/loss greens/reds for form/deltas/
+  momentum; **team kit colours only in rows/crests/momentum**, never chrome (the
+  page glow is now a single restrained cyan, no blue/green leaks).
+- **Momentum broadcast wave** (`MomentumWave`, pure SVG): G1's signed series as a
+  flowing two-colour area — home above the centreline, away below — with
+  goal-event markers on their minutes (Catmull-Rom smoothing, gradient fills).
+- **Tabbed secondary area** (`SecondaryTabs`, post-load): **Stats** (Boot/Assists/
+  Glove), **Tables** (Home/Away/Form/xG toggle), **Match** (fixture picker →
+  momentum wave + 0-90' timeline + player ratings by band, MOTM flagged),
+  **Season** (position-worm line chart, 1 at top, one line per club in kit colour).
+- **Rivalries** (`data/rivalries.ts`, extensible; analyst reuses it): RMA vs FCB →
+  **El Clásico** badge + heightened scoreboard framing; non-rivals → nothing.
+- **Broadcast moments:** referee-whistle SFX on Final Whistle + crowd roar on lead
+  change (Web Audio, synthesized, **mute toggle**); count-up scores; FLIP; and on
+  clinch a gold **CHAMPIONS** lower-third + confetti canvas + pulsing winning row.
+  Magic-number line shows before clinch.
+- **Responsive:** fixed the control-actions wrap (mobile overflow) — flawless at
+  390px (tabs usable, wave/timeline/worm reflow, table scrolls in-panel).
+- **Docs/deploy:** README rewritten (features, palette + rules, sim framing +
+  SQUAD_SNAPSHOT_DATE, crest/Wikimedia attribution, two-way analyst, exact deploy
+  commands + URL); OVERVIEW refreshed. Confirmed `vite base '/FIFA_HACKUP26_QF/'`
+  and relative crest paths (load under the base on Pages).
+
+**Verified:** `npm run verify` ✅ (all engine/analytics invariants green).
+`npm run build` clean. Browser (Playwright + Edge, **19/19**): hero primary +
+tabs work; LIVE dot cyan; leader points gold while non-leader points are not
+(gold discipline); momentum wave + 4 goal markers; ratings with one MOTM; Tables
+toggle; worm = one line/club; Stats leaderboards; **El Clásico framing fires**;
+**CHAMPIONS moment + confetti names Real Madrid** on the final day; **0 horizontal
+overflow on mobile** + wave renders in-tab; 0 console errors.
+
+**Status:** all phases complete — broadcast-grade, palette-disciplined, fully
+responsive, deploy-ready.

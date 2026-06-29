@@ -8,11 +8,12 @@
 //     we set thinkingBudget:0 to guarantee the 600-token budget yields the answer.
 
 /**
- * Pinned model. gemini-3.5-flash is GA/stable AND free (verified on the live
- * models + pricing pages, 2026-06-29). Flip to 'gemini-2.5-flash' if needed —
- * both are free; this is the only line to change.
+ * Pinned model. gemini-2.5-flash is GA/stable and free, and is reliably
+ * available — the newer gemini-3.5-flash was returning 503 UNAVAILABLE
+ * ("high demand") on 2026-06-29, so we pin 2.5-flash for a dependable live demo.
+ * All Flash models share this contract; this is the only line to change.
  */
-export const GEMINI_MODEL = 'gemini-3.5-flash';
+export const GEMINI_MODEL = 'gemini-2.5-flash';
 
 const ENDPOINT = (model: string): string =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;

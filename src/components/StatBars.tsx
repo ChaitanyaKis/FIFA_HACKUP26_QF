@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
 import type { MatchResult } from '../data/types.ts';
 import { computeMatchStats } from '../engine/engine.ts';
-import { teamById } from '../data/lookups.ts';
+import { clubById } from '../data/lookups.ts';
 import { Momentum } from './Momentum.tsx';
 
 interface Props {
@@ -46,8 +46,8 @@ export function StatBars({ matchday, fixtures }: Props) {
 
       <div className="analytics">
         {fixtures.map((fx) => {
-          const home = teamById.get(fx.homeId);
-          const away = teamById.get(fx.awayId);
+          const home = clubById.get(fx.homeId);
+          const away = clubById.get(fx.awayId);
           const stats = computeMatchStats(fx);
 
           const metrics = [
@@ -78,17 +78,17 @@ export function StatBars({ matchday, fixtures }: Props) {
           ];
 
           const trackStyle = {
-            '--away-color': away?.color ?? '#8892a6',
+            '--away-color': away?.primaryColor ?? '#8892a6',
           } as CSSProperties;
 
           return (
             <div className="analytics-card" key={fx.id}>
               <div className="ac-head">
-                <span className="ac-team" style={{ color: home?.color }}>
+                <span className="ac-team" style={{ color: home?.primaryColor }}>
                   {home?.shortCode}
                 </span>
                 <span className="ac-vs">vs</span>
-                <span className="ac-team" style={{ color: away?.color }}>
+                <span className="ac-team" style={{ color: away?.primaryColor }}>
                   {away?.shortCode}
                 </span>
               </div>
@@ -97,21 +97,21 @@ export function StatBars({ matchday, fixtures }: Props) {
                 <div className="stat-row" key={m.label}>
                   <span
                     className={`stat-val${m.homeLead ? ' is-lead' : ''}`}
-                    style={m.homeLead ? { color: home?.color } : undefined}
+                    style={m.homeLead ? { color: home?.primaryColor } : undefined}
                   >
                     {m.hv}
                   </span>
                   <span className="stat-label">{m.label}</span>
                   <span
                     className={`stat-val stat-val--right${m.awayLead ? ' is-lead' : ''}`}
-                    style={m.awayLead ? { color: away?.color } : undefined}
+                    style={m.awayLead ? { color: away?.primaryColor } : undefined}
                   >
                     {m.av}
                   </span>
                   <div className="stat-track" style={trackStyle}>
                     <motion.div
                       className="stat-fill"
-                      style={{ background: home?.color }}
+                      style={{ background: home?.primaryColor }}
                       key={`${fx.id}-${m.label}`}
                       initial={{ width: '0%' }}
                       animate={{ width: `${m.frac}%` }}

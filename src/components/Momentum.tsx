@@ -5,14 +5,14 @@
 import { motion } from 'framer-motion';
 import type { MatchResult } from '../data/types.ts';
 import { computeMomentum } from '../engine/engine.ts';
-import { teamById } from '../data/lookups.ts';
+import { clubById } from '../data/lookups.ts';
 
 /** A swing of this many xG fills the meter completely. */
 const MOMENTUM_FULL_SCALE = 2.0;
 
 export function Momentum({ fixture }: { fixture: MatchResult }) {
   const m = computeMomentum(fixture);
-  const dominant = m.dominantId ? teamById.get(m.dominantId) : null;
+  const dominant = m.dominantId ? clubById.get(m.dominantId) : null;
   const homeDominant = m.dominantId === fixture.homeId;
 
   const fillPct = Math.min(
@@ -27,7 +27,7 @@ export function Momentum({ fixture }: { fixture: MatchResult }) {
     <div className="momentum">
       <div className="mom-head">
         <span className="mom-label">Momentum</span>
-        <span className="mom-read" style={{ color: dominant?.color }}>
+        <span className="mom-read" style={{ color: dominant?.primaryColor }}>
           {readout}
         </span>
       </div>
@@ -36,7 +36,7 @@ export function Momentum({ fixture }: { fixture: MatchResult }) {
           {homeDominant && (
             <motion.span
               className="mom-fill mom-fill-home"
-              style={{ background: dominant?.color }}
+              style={{ background: dominant?.primaryColor }}
               key={`${fixture.id}-h`}
               initial={{ width: '0%' }}
               animate={{ width: `${fillPct}%` }}
@@ -49,7 +49,7 @@ export function Momentum({ fixture }: { fixture: MatchResult }) {
           {m.dominantId === fixture.awayId && (
             <motion.span
               className="mom-fill mom-fill-away"
-              style={{ background: dominant?.color }}
+              style={{ background: dominant?.primaryColor }}
               key={`${fixture.id}-a`}
               initial={{ width: '0%' }}
               animate={{ width: `${fillPct}%` }}

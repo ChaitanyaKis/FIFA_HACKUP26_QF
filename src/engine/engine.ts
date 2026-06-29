@@ -11,7 +11,7 @@ import type {
   StandingsRow,
   MatchStats,
   TitleRaceState,
-  Team,
+  Club,
   FormResult,
   Momentum,
   MotmSpotlight,
@@ -37,16 +37,44 @@ function emptyTally(teamId: string): Tally {
 }
 
 /**
+ * Options that parameterize the table without changing the default behavior.
+ * Used by the analytics layer (engine/derive.ts) to build the Home/Away/Form/xG
+ * tables by REUSING this one function instead of duplicating the accumulation.
+ */
+export interface StandingsOptions {
+  /** Restrict to a subset of fixtures (e.g. last N matchdays). */
+  filter?: (m: MatchResult) => boolean;
+  /** Credit only the home club, only the away club, or both (default). */
+  side?: 'both' | 'home' | 'away';
+  /** Map a fixture to its scoreline (default = actual goals; xG table uses xG). */
+  scoreOf?: (m: MatchResult) => { home: number; away: number };
+  /** Round gf/ga/gd to this many dp (for the decimal xG table). */
+  round?: number | null;
+}
+
+function roundTo(n: number, dp: number | null | undefined): number {
+  if (dp === null || dp === undefined) return n;
+  const f = 10 ** dp;
+  return Math.round(n * f) / f;
+}
+
+/**
  * Derive the league table from the match-log.
  *
  * Sorted by points -> goal difference -> goals for, with a stable teamId
- * tiebreak so the order is fully deterministic. Pass `teams` to also seed rows
- * for clubs that have not played yet (so the table shows all 4 before kickoff).
+ * tiebreak so the order is fully deterministic. Pass `clubs` to also seed rows
+ * for clubs that have not played yet. `options` (filter/side/scoreOf/round) is a
+ * purely additive parameterization — calling with two args is unchanged.
  */
 export function computeStandings(
   results: MatchResult[],
-  teams: Team[] = [],
+  clubs: Club[] = [],
+  options: StandingsOptions = {},
 ): StandingsRow[] {
+  const { filter, side = 'both', scoreOf, round = null } = options;
+  const score =
+    scoreOf ?? ((m: MatchResult) => ({ home: m.homeGoals, away: m.awayGoals }));
+
   const tallies = new Map<string, Tally>();
   const ensure = (id: string): Tally => {
     let t = tallies.get(id);
@@ -57,38 +85,33 @@ export function computeStandings(
     return t;
   };
 
-  // Seed every known team so 0-game clubs still appear.
-  for (const team of teams) ensure(team.id);
+  // Seed every known club so 0-game clubs still appear.
+  for (const club of clubs) ensure(club.id);
+
+  const credit = (t: Tally, gf: number, ga: number) => {
+    t.played++;
+    t.gf += gf;
+    t.ga += ga;
+    if (gf > ga) {
+      t.w++;
+      t.form.push('W');
+    } else if (gf < ga) {
+      t.l++;
+      t.form.push('L');
+    } else {
+      t.d++;
+      t.form.push('D');
+    }
+  };
 
   // Apply results in chronological order so `form` reads oldest -> newest.
-  const ordered = [...results].sort((a, b) => a.matchday - b.matchday);
+  const ordered = [...results]
+    .filter((m) => (filter ? filter(m) : true))
+    .sort((a, b) => a.matchday - b.matchday);
   for (const m of ordered) {
-    const home = ensure(m.homeId);
-    const away = ensure(m.awayId);
-
-    home.played++;
-    away.played++;
-    home.gf += m.homeGoals;
-    home.ga += m.awayGoals;
-    away.gf += m.awayGoals;
-    away.ga += m.homeGoals;
-
-    if (m.homeGoals > m.awayGoals) {
-      home.w++;
-      away.l++;
-      home.form.push('W');
-      away.form.push('L');
-    } else if (m.homeGoals < m.awayGoals) {
-      away.w++;
-      home.l++;
-      away.form.push('W');
-      home.form.push('L');
-    } else {
-      home.d++;
-      away.d++;
-      home.form.push('D');
-      away.form.push('D');
-    }
+    const { home: hs, away: as_ } = score(m);
+    if (side !== 'away') credit(ensure(m.homeId), hs, as_);
+    if (side !== 'home') credit(ensure(m.awayId), as_, hs);
   }
 
   const rows: StandingsRow[] = [...tallies.values()].map((t) => ({
@@ -97,9 +120,9 @@ export function computeStandings(
     w: t.w,
     d: t.d,
     l: t.l,
-    gf: t.gf,
-    ga: t.ga,
-    gd: t.gf - t.ga,
+    gf: roundTo(t.gf, round),
+    ga: roundTo(t.ga, round),
+    gd: roundTo(t.gf - t.ga, round),
     points: t.w * WIN_POINTS + t.d * DRAW_POINTS,
     form: [...t.form], // own copy — never alias the internal accumulator
     position: 0,
@@ -157,7 +180,7 @@ export function pickMOTM(
   if (winnerId) {
     const winningScorer = result.scorerIds
       .map((id) => byId.get(id))
-      .find((p): p is Player => p?.teamId === winnerId);
+      .find((p): p is Player => p?.clubId === winnerId);
     if (winningScorer) return winningScorer;
   }
 
@@ -210,13 +233,13 @@ export function motmForMatch(
   const player = pickMOTM(result, players);
   if (!player) return null;
 
-  const isHome = player.teamId === result.homeId;
+  const isHome = player.clubId === result.homeId;
   const teamGoals = isHome ? result.homeGoals : result.awayGoals;
   const oppGoals = isHome ? result.awayGoals : result.homeGoals;
 
   return {
     player,
-    teamId: player.teamId,
+    teamId: player.clubId,
     matchId: result.id,
     matchday: result.matchday,
     goals: result.scorerIds.filter((id) => id === player.id).length,

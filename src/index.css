@@ -19,6 +19,9 @@ body,
 }
 
 body {
-  background: #0a1020;
+  background: #0a0e17;
   color: #eef2fb;
+}
+::selection {
+  background: rgba(43, 232, 255, 0.3);
 }

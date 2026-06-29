@@ -1,34 +1,74 @@
-// The ONLY mutable state in the app: how many matchdays have been simulated.
-//
-// We never store standings, stats, MOTM or form. The reducer advances a single
-// integer over the match-log; every view is re-derived by the pure engine from
-// `season.filter(m => m.matchday <= playedMatchdays)`. That is what guarantees
-// the table and the numbers can never disagree.
+// App state. The season SEED is now MUTABLE state — the whole season is derived
+// from it by simulateSeason. We also track how far the season is revealed
+// (playedMatchdays, driven by the Final Whistle / scrubber) and any What-If
+// edits (per-fixture scoreline + chosen scorers) applied on top of the sim.
 
-import { TOTAL_MATCHDAYS } from '../data/season.ts';
+import { CURATED_SEEDS } from '../sim/curatedSeeds.ts';
 
-export interface MatchLogState {
-  /** How many matchdays have had their "final whistle" — 0..TOTAL_MATCHDAYS. */
-  playedMatchdays: number;
+/** A What-If override for one fixture. */
+export interface WhatIfEdit {
+  homeGoals: number;
+  awayGoals: number;
+  homeScorers: string[]; // chosen scorer per home goal ('' = auto)
+  awayScorers: string[];
 }
 
-export type MatchLogAction =
-  | { type: 'SIMULATE_FINAL_WHISTLE' }
-  | { type: 'RESET' };
+export interface AppState {
+  seed: number;
+  curatedIndex: number; // index into CURATED_SEEDS, or -1 for a random ("surprise") seed
+  playedMatchdays: number;
+  edits: Record<string, WhatIfEdit>; // fixtureId -> edit
+}
 
-export const initialState: MatchLogState = { playedMatchdays: 0 };
+export type AppAction =
+  | { type: 'SET_PLAYED'; matchdays: number }
+  | { type: 'NEXT_CURATED' } // Reset Season → next curated seed
+  | { type: 'RANDOM_SEED'; seed: number } // Surprise me
+  | { type: 'APPLY_EDIT'; fixtureId: string; edit: WhatIfEdit }
+  | { type: 'REVERT_ONE'; fixtureId: string }
+  | { type: 'REVERT_EDITS' };
 
-export function matchLogReducer(
-  state: MatchLogState,
-  action: MatchLogAction,
-): MatchLogState {
+export const initialState: AppState = {
+  seed: CURATED_SEEDS[0], // 737 — the rehearsed opener
+  curatedIndex: 0,
+  playedMatchdays: 0,
+  edits: {},
+};
+
+export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'SIMULATE_FINAL_WHISTLE':
+    case 'SET_PLAYED':
+      return { ...state, playedMatchdays: Math.max(0, action.matchdays) };
+
+    case 'NEXT_CURATED': {
+      const nextIndex =
+        state.curatedIndex < 0 ? 0 : (state.curatedIndex + 1) % CURATED_SEEDS.length;
       return {
-        playedMatchdays: Math.min(state.playedMatchdays + 1, TOTAL_MATCHDAYS),
+        seed: CURATED_SEEDS[nextIndex],
+        curatedIndex: nextIndex,
+        playedMatchdays: 0,
+        edits: {},
       };
-    case 'RESET':
-      return initialState;
+    }
+
+    case 'RANDOM_SEED':
+      return { seed: action.seed, curatedIndex: -1, playedMatchdays: 0, edits: {} };
+
+    case 'APPLY_EDIT':
+      return {
+        ...state,
+        edits: { ...state.edits, [action.fixtureId]: action.edit },
+      };
+
+    case 'REVERT_ONE': {
+      const next = { ...state.edits };
+      delete next[action.fixtureId];
+      return { ...state, edits: next };
+    }
+
+    case 'REVERT_EDITS':
+      return { ...state, edits: {} };
+
     default:
       return state;
   }

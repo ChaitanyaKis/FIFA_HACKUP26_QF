@@ -9,8 +9,9 @@
 import { motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
 import type { StandingsRow } from '../data/types.ts';
-import { teamById } from '../data/lookups.ts';
+import { clubById } from '../data/lookups.ts';
 import { FormPips } from './FormPips.tsx';
+import { CrestBadge } from './CrestBadge.tsx';
 
 interface Props {
   standings: StandingsRow[];
@@ -39,10 +40,11 @@ export function StandingsTable({ standings, flashLeaderId }: Props) {
         </div>
 
         {standings.map((row) => {
-          const team = teamById.get(row.teamId);
+          const club = clubById.get(row.teamId);
           const isLeader = row.position === 1;
           const rowStyle = {
-            '--team-color': team?.color ?? '#8892a6',
+            '--team-color': club?.primaryColor ?? '#8892a6',
+            '--team-2': club?.secondaryColor ?? '#8892a6',
           } as CSSProperties;
           const gd = row.gd > 0 ? `+${row.gd}` : String(row.gd);
 
@@ -73,9 +75,10 @@ export function StandingsTable({ standings, flashLeaderId }: Props) {
                 )}
               </span>
               <span className="col-team">
-                <span className="team-dot" />
-                <span className="team-name">{team?.name ?? row.teamId}</span>
-                <span className="team-code">{team?.shortCode}</span>
+                <CrestBadge club={club} size={24} />
+                <span className="team-accent" />
+                <span className="team-name">{club?.name ?? row.teamId}</span>
+                <span className="team-code">{club?.shortCode}</span>
               </span>
               <span className="col-num">{row.played}</span>
               <span className="col-num">{row.w}</span>
