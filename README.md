@@ -11,7 +11,7 @@ recompute.
 > engine generates all results; the analyst always treats the data as simulated
 > and never states it as real-world fact about the real players.
 
-**Live demo:** `https://ieeecssociety803.github.io/FIFA-HACKUP-Morocco/`
+**Live demo:** `https://chaitanyakis.github.io/FIFA_HACKUP26_QF/`
 *(GitHub Pages lowercases the username; the repo path keeps its case.)*
 
 ---
@@ -74,7 +74,7 @@ chrome**; everything else is the neutral ink scale.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173/FIFA-HACKUP-Morocco/
+npm run dev      # http://localhost:5173/FIFA_HACKUP26_QF/
 npm run build    # type-check + production build to dist/
 npm run preview  # serve the production build under the Pages base
 npm run verify   # re-simulate + assert every invariant (engine + analytics)
@@ -151,7 +151,7 @@ returning 503) — a single constant in `src/ai/gemini.ts`.
 
 ## Deploy to GitHub Pages
 
-`vite.config.ts` sets `base: '/FIFA-HACKUP-Morocco/'` (matches the repo); crest paths
+`vite.config.ts` sets `base: '/FIFA_HACKUP26_QF/'` (matches the repo); crest paths
 are relative, so assets load under the base on Pages.
 
 ```bash
@@ -165,7 +165,7 @@ Or push to `main` and let the included workflow
 [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) build + deploy
 (set **Settings → Pages → Source: GitHub Actions** once).
 
-**Live URL:** `https://ieeecssociety803.github.io/FIFA-HACKUP-Morocco/`
+**Live URL:** `https://chaitanyakis.github.io/FIFA_HACKUP26_QF/`
 
 > Build the public bundle with `.env` empty/absent so no key is shipped — the
 > dev-only guard already strips it, and visitors paste their own key at runtime.
